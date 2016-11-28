@@ -20,7 +20,6 @@ defaultShowArr MACRO
 ENDM
 
 prepareForSort MACRO
-	mov is_continuos, 0
     mov ah, 9
     int 21h
     inc cursorY
@@ -61,7 +60,7 @@ data	segment
     strQuick db 'Quick Sort', 10, 13, '$'
     strMigration db 'Migration Sort', 10, 13, '$' 
 	tempRadixArr db 30 dup(?)
-	radixIndex db 0    
+	radixIndex db 0
 data    ends
 
 stac    segment stack
@@ -97,7 +96,7 @@ menu PROC; finished
     xor dh, dh
     mov len, dx
     
-    ;asks the user if he wants to set the values, want them to be random, or want them to be default
+    ;asks the user if he wants to set the values or will they be random
     rnd_or_user:
     mov dx, offset Str2
     mov ah, 9h
@@ -201,40 +200,37 @@ menu PROC; finished
     mov dx, offset strBubble
 
     prepareForSort
+    
+    restoreMainArr
      
     call bubbleSort
-
-    restoreMainArr
-
     call sortsMenu
     
     mov dx, offset strInsertion
 
     prepareForSort
     
-    call insertionSort
-
     restoreMainArr
-
+    
+    call insertionSort
     call sortsMenu
                   
     mov dx, offset strRadix
 
     prepareForSort
     
+    restoreMainArr
+    
     call radixSort
-
-	restoreMainArr
-
     call sortsMenu
     
     mov dx, offset strQuick
 
     prepareForSort
     
-    call quickSort
-
-    restoreMainArr             
+    restoreMainArr
+    
+    call quickSort             
     
     endSortMenu:
     defaultShowArr
@@ -249,16 +245,15 @@ rndmVal PROC; finished
     push ax bx cx dx
    	 
     mov ah, 00h
-    int 1Ah ; return clock count in cx:dx
+    int 1Ah
     mov bx, len
     dec bx
     getRndNum:
     	push bx
-
     	mov ax, cx
     	mov cx, dx
     	mov bx, 1049
-    	mul bx ; ax:dx = ax * bx
+    	mul bx
     	add ax, 1447
     	xor dx, ax
     	mov ax, cx
@@ -300,7 +295,7 @@ quickSort ENDP
 
 ;sorts the main array using quickSort
 QuickSortRecursive PROC; finished
-	RightIndex equ 4
+    RightIndex equ 4
     LeftIndex equ 6
 
     push bp
@@ -317,7 +312,7 @@ QuickSortRecursive PROC; finished
     shr si, 1 ; si is the pivot, the index of the middle element in the array, si = (RightIndex + LeftIndex) / 2, 
     mainQuickLoop:
         cmp di, bx
-        JG callRecursiveQuick ; stop when left index bigger then right index
+        JGE callRecursiveQuick ; stop when left index bigger then right index
         leftIndexLoop: ; find an element from the left of the pivot that is bigger or even to the pivot
             mov al, byte ptr mainArr[si]
             cmp al, byte ptr mainArr[di]
@@ -359,13 +354,18 @@ QuickSortRecursive PROC; finished
         showMainArr
         call swap_menu
         endQuickShowArr:
+        cmp di, si
+        JGE decRight
         inc di
+        decRight:
+        cmp si, bx 
+        JGE mainQuickLoop
         dec bx
         JMP mainQuickLoop
     callRecursiveQuick:
     mov ax, [bp + rightIndex]
     mov cx, [bp + LeftIndex]
-  	cmp si, cx
+    cmp si, cx
     JLE callRightQuickSort
     push cx
     mov dx, si
@@ -375,9 +375,9 @@ QuickSortRecursive PROC; finished
     callRightQuickSort:
     cmp ax, si
     JLE EndQuickSort
-   	mov dx, si
-   	inc dx
-   	push dx
+    mov dx, si
+    inc dx
+    push dx
     push ax
     call QuickSortRecursive
     EndQuickSort:
@@ -426,7 +426,7 @@ radixSort PROC ; finished
     		cmp si, len
     		JNZ radix_inner_loop
 
-    	cmp cursorY, 18
+    	cmp cursorY, 19
         JL copy_radix_temp
         call clearScreen 
 
@@ -654,7 +654,7 @@ swap_menu PROC ;finished
     ret    
 swap_menu ENDP
 
-;gets a number fr0om the user
+;gets a number from the user
 getNum PROC ;finished
     push ax bx cx
     
@@ -843,7 +843,10 @@ printNum PROC ;finished
     int 10h
     call incCursorPos
     
-    pop dx cx bx ax
+    pop dx
+    pop cx
+    pop bx
+    pop ax       
            
     pop bp
     ret 4
@@ -1022,7 +1025,7 @@ WaitSomeTime ENDP
 
 ;waits for user to press on anything before resuming the program
 systemPause PROC ; finished
-    push ax dx
+	push ax dx
     
     cmp cursorY, 24
     JL start_wait_for_key
